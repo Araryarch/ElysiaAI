@@ -1,5 +1,13 @@
 import { t, Elysia } from "elysia";
 
+// Simple in-memory cache
+const cache = new Map<string, { timestamp: number; data: any }>();
+const CACHE_TTL = 10_000; // 10 seconds
+
+function createCacheKey(payload: any) {
+  return JSON.stringify(payload);
+}
+
 const url = "https://chat.ragita.net/api/chat/completions";
 
 export default new Elysia({ prefix: "/api" }).post(
@@ -17,6 +25,23 @@ export default new Elysia({ prefix: "/api" }).post(
 
       const payload = { model: "qwen2.5:14b", messages: msg };
 
+      // ---- CACHE CHECK ----
+      const cacheKey = createCacheKey(payload);
+      const cached = cache.get(cacheKey);
+
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return {
+          success: true,
+          error: null,
+          data: {
+            reply: cached.data.reply,
+            messages: cached.data.messages,
+            cached: true, // info tambahan
+          },
+        };
+      }
+
+      // ---- FETCH TO AI SERVER ----
       const res = await fetch(url, {
         method: "POST",
         headers: {
@@ -43,13 +68,21 @@ export default new Elysia({ prefix: "/api" }).post(
       const data = await res.json();
       const reply = data?.choices?.[0]?.message?.content || "";
 
+      const responseData = {
+        reply,
+        messages: [...msg, { role: "assistant", content: reply }],
+      };
+
+      // ---- SAVE TO CACHE ----
+      cache.set(cacheKey, {
+        timestamp: Date.now(),
+        data: responseData,
+      });
+
       return {
         success: true,
         error: null,
-        data: {
-          reply,
-          messages: [...msg, { role: "assistant", content: reply }],
-        },
+        data: responseData,
       };
     } catch (err: any) {
       return new Response(
