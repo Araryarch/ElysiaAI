@@ -1,19 +1,31 @@
 import { Elysia } from "elysia";
 
-const url = "https://chat.ragita.net/api/chat/completions";
+const EXTERNAL_HEALTH_URL = "https://chat.ragita.net/api/health";
+
+const API_KEY = process.env.API_KEY || "";
+
+// Helper timeout
+function timeout(ms: number) {
+  return new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Request timed out")), ms)
+  );
+}
 
 async function checkExternalAPI() {
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "qwen2.5:14b",
-        messages: [{ role: "user", content: "ping" }],
+    const res = await Promise.race([
+      fetch(EXTERNAL_HEALTH_URL, {
+        method: "GET",
+        headers: {
+          Authorization: API_KEY,
+        },
       }),
-    });
+      timeout(5000),
+    ]);
 
+    if (!(res instanceof Response)) return false;
     if (!res.ok) return false;
+
     return true;
   } catch {
     return false;
