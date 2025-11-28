@@ -4,6 +4,8 @@ const url = "https://chat.ragita.net/api/chat/completions";
 
 const app = new Elysia();
 
+app.get("/", "I'm Good");
+
 app.post(
   "/api/chat",
   async ({ body, set }) => {
