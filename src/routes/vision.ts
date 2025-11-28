@@ -16,15 +16,24 @@ function bufferToBase64(buffer: ArrayBuffer, mimetype: string) {
   )}`;
 }
 
+// fetch image from URL → convert to base64
+async function imageUrlToBase64(url: string) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch image from URL: ${url}`);
+  const buffer = await res.arrayBuffer();
+  const contentType = res.headers.get("content-type") || "image/png";
+  return bufferToBase64(buffer, contentType);
+}
+
 async function normalizeMessages(
-  messages: any, // accept string or array
+  messages: any[],
   file?: File,
+  imageUrl?: string,
   prompt?: string,
   systemPrompt?: string
 ) {
   const result: any[] = [];
 
-  // parse messages string → JSON jika perlu
   if (typeof messages === "string") {
     try {
       messages = JSON.parse(messages);
@@ -33,33 +42,34 @@ async function normalizeMessages(
     }
   }
 
-  // system prompt
   if (systemPrompt) result.push({ role: "system", content: systemPrompt });
 
-  // existing messages
   if (Array.isArray(messages)) {
     for (const msg of messages) {
       if (!Array.isArray(msg.content)) {
         result.push(msg);
         continue;
       }
-
       let normalized = "";
       for (const item of msg.content) {
         if (item.type === "text") normalized += item.text + "\n\n";
       }
-
       result.push({ role: msg.role, content: normalized.trim() });
     }
   }
 
-  // uploaded image
+  // uploaded file
   if (file) {
     const base64 = bufferToBase64(await file.arrayBuffer(), file.type);
     result.push({ role: "user", content: `<image:${base64}>` });
   }
 
-  // prompt
+  // image URL
+  if (imageUrl) {
+    const base64 = await imageUrlToBase64(imageUrl);
+    result.push({ role: "user", content: `<image:${base64}>` });
+  }
+
   if (prompt) result.push({ role: "user", content: prompt });
 
   return result;
@@ -67,18 +77,18 @@ async function normalizeMessages(
 
 export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
   try {
-    // baca body langsung satu kali → aman Bun
     const form = await ctx.request.formData();
 
     const prompt = form.get("prompt")?.toString();
     const systemPrompt = form.get("systemPrompt")?.toString();
     const messages = form.get("messages")?.toString();
     const file = form.get("image") as File | undefined;
+    const imageUrl = form.get("image_url")?.toString();
 
-    // normalize & attach image
     const normalized = await normalizeMessages(
-      messages || [],
+      messages ? JSON.parse(messages) : [],
       file,
+      imageUrl,
       prompt,
       systemPrompt
     );
