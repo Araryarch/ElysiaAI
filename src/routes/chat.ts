@@ -68,7 +68,6 @@ export default new Elysia({ prefix: "/api" }).post(
         messages: [...msg, { role: "assistant", content: reply }],
       };
 
-      // ---- SAVE TO CACHE ----
       cache.set(cacheKey, {
         timestamp: Date.now(),
         data: responseData,
