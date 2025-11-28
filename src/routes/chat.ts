@@ -1,8 +1,7 @@
 import { t, Elysia } from "elysia";
 
-// Simple in-memory cache
 const cache = new Map<string, { timestamp: number; data: any }>();
-const CACHE_TTL = 10_000; // 10 seconds
+const CACHE_TTL = 20_000;
 
 function createCacheKey(payload: any) {
   return JSON.stringify(payload);
@@ -25,7 +24,6 @@ export default new Elysia({ prefix: "/api" }).post(
 
       const payload = { model: "qwen2.5:14b", messages: msg };
 
-      // ---- CACHE CHECK ----
       const cacheKey = createCacheKey(payload);
       const cached = cache.get(cacheKey);
 
@@ -35,12 +33,11 @@ export default new Elysia({ prefix: "/api" }).post(
           data: {
             reply: cached.data.reply,
             messages: cached.data.messages,
-            cached: true, // info tambahan
+            cached: true,
           },
         };
       }
 
-      // ---- FETCH TO AI SERVER ----
       const res = await fetch(url, {
         method: "POST",
         headers: {
