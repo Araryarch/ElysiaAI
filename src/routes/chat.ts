@@ -10,7 +10,6 @@ export default new Elysia({ prefix: "/api" }).post(
     try {
       const API_KEY = process.env.API_KEY ?? "";
 
-      // Build messages efficiently
       const msg: any[] = [];
       if (systemPrompt) msg.push({ role: "system", content: systemPrompt });
       if (messages.length) msg.push(...messages);
@@ -30,8 +29,12 @@ export default new Elysia({ prefix: "/api" }).post(
       if (!res.ok) {
         return new Response(
           JSON.stringify({
-            error: "AI request failed",
-            details: await res.text(),
+            success: false,
+            data: null,
+            error: {
+              message: "AI request failed",
+              details: await res.text(),
+            },
           }),
           { status: res.status }
         );
@@ -41,14 +44,22 @@ export default new Elysia({ prefix: "/api" }).post(
       const reply = data?.choices?.[0]?.message?.content || "";
 
       return {
-        reply,
-        messages: [...msg, { role: "assistant", content: reply }],
+        success: true,
+        error: null,
+        data: {
+          reply,
+          messages: [...msg, { role: "assistant", content: reply }],
+        },
       };
     } catch (err: any) {
       return new Response(
         JSON.stringify({
-          error: "Internal server error",
-          details: err?.message,
+          success: false,
+          data: null,
+          error: {
+            message: "Internal server error",
+            details: err?.message || String(err),
+          },
         }),
         { status: 500 }
       );
