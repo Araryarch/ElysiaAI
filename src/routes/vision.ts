@@ -1,9 +1,9 @@
 import { t, Elysia } from "elysia";
 
 const cache = new Map<string, { timestamp: number; data: any }>();
-const CACHE_TTL = 20_000;
+const CACHE_TTL = 20_000; // 20 detik
 
-const url = "https://chat.ragita.net/api/chat/completions";
+const API_URL = "https://chat.ragita.net/api/chat/completions";
 const API_KEY = process.env.API_KEY ?? "";
 
 function createCacheKey(payload: any) {
@@ -24,6 +24,7 @@ async function normalizeMessages(
 ) {
   const result: any[] = [];
 
+  // parse messages string → JSON jika perlu
   if (typeof messages === "string") {
     try {
       messages = JSON.parse(messages);
@@ -32,8 +33,10 @@ async function normalizeMessages(
     }
   }
 
+  // system prompt
   if (systemPrompt) result.push({ role: "system", content: systemPrompt });
 
+  // existing messages
   if (Array.isArray(messages)) {
     for (const msg of messages) {
       if (!Array.isArray(msg.content)) {
@@ -50,11 +53,13 @@ async function normalizeMessages(
     }
   }
 
+  // uploaded image
   if (file) {
     const base64 = bufferToBase64(await file.arrayBuffer(), file.type);
     result.push({ role: "user", content: `<image:${base64}>` });
   }
 
+  // prompt
   if (prompt) result.push({ role: "user", content: prompt });
 
   return result;
@@ -64,7 +69,7 @@ export default new Elysia({ prefix: "/api" }).post(
   "/vision",
   async (ctx) => {
     try {
-      // Bun + Elysia: pakai ctx.request.formData() bukan ctx.body.formData()
+      // baca body sekali → form-data
       const form = await ctx.request.formData();
 
       const prompt = form.get("prompt")?.toString();
@@ -72,6 +77,7 @@ export default new Elysia({ prefix: "/api" }).post(
       const messages = form.get("messages")?.toString();
       const file = form.get("image") as File | undefined;
 
+      // normalize & attach image
       const normalized = await normalizeMessages(
         messages || [],
         file,
@@ -81,14 +87,14 @@ export default new Elysia({ prefix: "/api" }).post(
 
       const payload = { model: "qwen2.5vl:7b", messages: normalized };
 
-      // --- cache ---
+      // --- caching ---
       const cacheKey = createCacheKey(payload);
       const cached = cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL)
         return { success: true, data: { ...cached.data, cached: true } };
 
       // --- fetch AI ---
-      const res = await fetch(url, {
+      const res = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -130,7 +136,5 @@ export default new Elysia({ prefix: "/api" }).post(
       );
     }
   },
-  {
-    body: t.Any(),
-  }
+  { body: t.Any() } // form-data tidak bisa strict typing
 );
