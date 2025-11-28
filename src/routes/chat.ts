@@ -4,9 +4,11 @@ const url = "https://chat.ragita.net/api/chat/completions";
 
 export const chatRoute = new Elysia({ prefix: "/api" }).post(
   "/chat",
-  async ({ body, set }) => {
+  async ({ body }) => {
     try {
       const { prompt, messages = [], systemPrompt } = body;
+
+      const API_KEY = process.env.API_KEY || "";
 
       const payload = {
         model: "qwen2.5:14b",
@@ -21,15 +23,19 @@ export const chatRoute = new Elysia({ prefix: "/api" }).post(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: process.env.API_KEY ?? "",
+          Authorization: API_KEY,
         },
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
-        const errorText = await res.text();
-        set.status = res.status;
-        return { error: `Failed to fetch AI response: ${errorText}` };
+        const errText = await res.text();
+        return new Response(
+          JSON.stringify({
+            error: `Failed to fetch AI response: ${errText}`,
+          }),
+          { status: res.status }
+        );
       }
 
       const data = await res.json();
@@ -40,8 +46,13 @@ export const chatRoute = new Elysia({ prefix: "/api" }).post(
         messages: [...payload.messages, { role: "assistant", content: reply }],
       };
     } catch (err: any) {
-      set.status = 500;
-      return { error: "Internal server error", details: err?.message };
+      return new Response(
+        JSON.stringify({
+          error: "Internal server error",
+          details: err?.message,
+        }),
+        { status: 500 }
+      );
     }
   },
   {
