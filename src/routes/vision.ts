@@ -45,32 +45,46 @@ async function normalizeMessages(
   if (systemPrompt) result.push({ role: "system", content: systemPrompt });
 
   if (Array.isArray(messages)) {
-    for (const msg of messages) {
-      if (!Array.isArray(msg.content)) {
-        result.push(msg);
-        continue;
-      }
-      let normalized = "";
-      for (const item of msg.content) {
-        if (item.type === "text") normalized += item.text + "\n\n";
-      }
-      result.push({ role: msg.role, content: normalized.trim() });
+    result.push(...messages);
+  }
+
+  // Jika ada file atau imageUrl, gabungkan dengan prompt dalam satu message
+  if (file || imageUrl) {
+    const content: any[] = [];
+
+    // Tambahkan gambar
+    if (file) {
+      const base64 = bufferToBase64(await file.arrayBuffer(), file.type);
+      content.push({
+        type: "image_url",
+        image_url: { url: base64 },
+      });
     }
-  }
 
-  // uploaded file
-  if (file) {
-    const base64 = bufferToBase64(await file.arrayBuffer(), file.type);
-    result.push({ role: "user", content: `<image:${base64}>` });
-  }
+    if (imageUrl) {
+      const base64 = await imageUrlToBase64(imageUrl);
+      content.push({
+        type: "image_url",
+        image_url: { url: base64 },
+      });
+    }
 
-  // image URL
-  if (imageUrl) {
-    const base64 = await imageUrlToBase64(imageUrl);
-    result.push({ role: "user", content: `<image:${base64}>` });
-  }
+    // Tambahkan prompt jika ada
+    if (prompt) {
+      content.push({
+        type: "text",
+        text: prompt,
+      });
+    }
 
-  if (prompt) result.push({ role: "user", content: prompt });
+    result.push({
+      role: "user",
+      content: content,
+    });
+  } else if (prompt) {
+    // Jika hanya prompt tanpa gambar
+    result.push({ role: "user", content: prompt });
+  }
 
   return result;
 }
