@@ -1,21 +1,58 @@
-import { t, Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 
+// Ganti ke server model kamu
 const url = "https://chat.ragita.net/api/chat/completions";
+
+// Cache system prompt (supaya tidak dikirim tiap request)
+let cachedSystemPrompt: string | null = null;
+
+// ---------- STREAMING HELPER ----------
+function createSSEReadable(stream: ReadableStream) {
+  const reader = stream.getReader();
+  const encoder = new TextEncoder();
+
+  return new ReadableStream({
+    async pull(controller) {
+      const { value, done } = await reader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      // Forward data sebagai SSE
+      controller.enqueue(encoder.encode(value));
+    },
+    cancel() {
+      reader.cancel();
+    },
+  });
+}
+// --------------------------------------
 
 export default new Elysia({ prefix: "/api" }).post(
   "/chat",
   async ({ body }) => {
     try {
       const { prompt, messages = [], systemPrompt } = body;
-
       const API_KEY = process.env.API_KEY || "";
+
+      // Cache system prompt supaya ga dikirim ulang setiap request
+      if (systemPrompt && cachedSystemPrompt !== systemPrompt) {
+        cachedSystemPrompt = systemPrompt;
+      }
+
+      // Trim messages agar LLM lebih cepat (5 terakhir cukup)
+      const trimmed = messages.slice(-5);
 
       const payload = {
         model: "qwen2.5:14b",
+        stream: true,
         messages: [
-          { role: "system", content: systemPrompt || "" },
-          ...messages,
-          { role: "user", content: prompt },
+          ...(cachedSystemPrompt
+            ? [{ role: "system", content: cachedSystemPrompt }]
+            : []),
+          ...trimmed,
+          ...(prompt ? [{ role: "user", content: prompt }] : []),
         ],
       };
 
@@ -29,26 +66,28 @@ export default new Elysia({ prefix: "/api" }).post(
       });
 
       if (!res.ok) {
-        const errText = await res.text();
+        const err = await res.text();
         return new Response(
-          JSON.stringify({
-            error: `Failed to fetch AI response: ${errText}`,
-          }),
+          JSON.stringify({ error: `AI server error: ${err}` }),
           { status: res.status }
         );
       }
 
-      const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content ?? "";
+      // Ambil streaming dari AI
+      const readable = createSSEReadable(res.body!);
 
-      return {
-        reply,
-        messages: [...payload.messages, { role: "assistant", content: reply }],
-      };
+      // Kirim kembali ke client sebagai text/event-stream
+      return new Response(readable, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+        },
+      });
     } catch (err: any) {
       return new Response(
         JSON.stringify({
-          error: "Internal server error",
+          error: "Internal server error (stream failed)",
           details: err?.message,
         }),
         { status: 500 }
