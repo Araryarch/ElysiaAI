@@ -4,7 +4,6 @@ const EXTERNAL_HEALTH_URL = "https://chat.ragita.net/api/health";
 
 const API_KEY = process.env.API_KEY || "";
 
-// Helper timeout
 function timeout(ms: number) {
   return new Promise((_, reject) =>
     setTimeout(() => reject(new Error("Request timed out")), ms)
