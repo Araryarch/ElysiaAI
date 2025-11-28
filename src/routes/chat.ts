@@ -32,7 +32,6 @@ export default new Elysia({ prefix: "/api" }).post(
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         return {
           success: true,
-          error: null,
           data: {
             reply: cached.data.reply,
             messages: cached.data.messages,
@@ -55,7 +54,6 @@ export default new Elysia({ prefix: "/api" }).post(
         return new Response(
           JSON.stringify({
             success: false,
-            data: null,
             error: {
               message: "AI request failed",
               details: await res.text(),
