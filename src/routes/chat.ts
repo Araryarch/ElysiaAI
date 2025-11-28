@@ -2,7 +2,7 @@ import { t, Elysia } from "elysia";
 
 const url = "https://chat.ragita.net/api/chat/completions";
 
-export const chatRoute = new Elysia({ prefix: "/api" }).post(
+export default new Elysia({ prefix: "/api" }).post(
   "/chat",
   async ({ body }) => {
     try {
