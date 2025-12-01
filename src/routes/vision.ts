@@ -1,6 +1,9 @@
 import { Elysia } from "elysia";
 
-const cache = new Map<string, { timestamp: number; data: any }>();
+const cache = new Map<
+  string,
+  { timestamp: number; models: string; data: any }
+>();
 const CACHE_TTL = 20_000; // 20 detik
 
 const API_URL = "https://chat.ragita.net/api/chat/completions";
@@ -141,7 +144,11 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
       messages: [...normalized, { role: "assistant", content: reply }],
     };
 
-    cache.set(cacheKey, { timestamp: Date.now(), data: responseData });
+    cache.set(cacheKey, {
+      timestamp: Date.now(),
+      models: "senopati-7b",
+      data: responseData,
+    });
 
     return { success: true, models: "senopati-7b", data: responseData };
   } catch (err: any) {
