@@ -11,7 +11,6 @@ export default new Elysia({ prefix: "/api" }).get("/models", async () => {
   try {
     const now = Date.now();
 
-    // Cache hit
     if (cache && now - cacheTime < CACHE_TTL) {
       return {
         success: true,
@@ -20,13 +19,11 @@ export default new Elysia({ prefix: "/api" }).get("/models", async () => {
       };
     }
 
-    // Fetch API eksternal
     const res = await fetch(url, {
       headers: { Authorization: API_KEY },
     });
 
     if (!res.ok) {
-      // API error, jangan 404-in user
       return new Response(
         JSON.stringify({
           success: false,
@@ -39,17 +36,17 @@ export default new Elysia({ prefix: "/api" }).get("/models", async () => {
 
     const data = await res.json();
 
-    // Save cache
-    cache = data;
+    const models = data?.data ?? [];
+
+    cache = models;
     cacheTime = now;
 
     return {
       success: true,
-      models: data,
+      models,
       cached: false,
     };
   } catch (err: any) {
-    // Tangani error selain fetch (timeout, network issue, dsb)
     return new Response(
       JSON.stringify({
         success: false,
