@@ -11,6 +11,7 @@ export default new Elysia({ prefix: "/api" }).get("/models", async () => {
   try {
     const now = Date.now();
 
+    // Cache
     if (cache && now - cacheTime < CACHE_TTL) {
       return {
         success: true,
@@ -36,7 +37,11 @@ export default new Elysia({ prefix: "/api" }).get("/models", async () => {
 
     const data = await res.json();
 
-    const models = data?.data ?? [];
+    // ⚡ Extract hanya bagian id + name
+    const models = (data?.data ?? []).map((m: any) => ({
+      id: m.id,
+      name: m.name,
+    }));
 
     cache = models;
     cacheTime = now;
