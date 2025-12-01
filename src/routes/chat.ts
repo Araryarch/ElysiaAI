@@ -30,6 +30,7 @@ export default new Elysia({ prefix: "/api" }).post(
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         return {
           success: true,
+          models: "senopati-7b",
           data: {
             reply: cached.data.reply,
             messages: cached.data.messages,
@@ -75,14 +76,13 @@ export default new Elysia({ prefix: "/api" }).post(
 
       return {
         success: true,
-        error: null,
+        models: "senopati-7b",
         data: responseData,
       };
     } catch (err: any) {
       return new Response(
         JSON.stringify({
           success: false,
-          data: null,
           error: {
             message: "Internal server error",
             details: err?.message || String(err),
