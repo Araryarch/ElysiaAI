@@ -138,6 +138,7 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
 
     const responseData = {
       reply,
+      models: "senopati-7b",
       messages: [...normalized, { role: "assistant", content: reply }],
     };
 
