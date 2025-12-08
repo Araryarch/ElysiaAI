@@ -107,7 +107,7 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
       systemPrompt
     );
 
-    const payload = { model: "qwen2.5vl:7b", messages: normalized };
+    const payload = { model: "qwen3-vl:8b", messages: normalized };
 
     // --- caching ---
     const cacheKey = createCacheKey(payload);
