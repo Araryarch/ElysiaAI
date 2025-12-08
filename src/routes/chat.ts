@@ -28,10 +28,6 @@ export default new Elysia({ prefix: "/api" }).post(
         features: {
           web_search: true,
           citations: true,
-          status_updates: true,
-          image_generation: false,
-          code_interpreter: true,
-          voice: false,
         },
       };
 

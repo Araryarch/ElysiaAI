@@ -110,9 +110,6 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
     const payload = {
       model: "qwen3-vl:8b",
       messages: normalized,
-      features: {
-        web_search: true,
-      },
     };
 
     // --- caching ---
