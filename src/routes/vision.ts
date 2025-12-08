@@ -112,10 +112,10 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
       messages: normalized,
       features: {
         web_search: true,
-        citations: true,
+        citations: false,
         status_updates: true,
         image_generation: true,
-        code_interpreter: true,
+        code_interpreter: false,
         voice: false,
       },
     };
