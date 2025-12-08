@@ -22,7 +22,18 @@ export default new Elysia({ prefix: "/api" }).post(
       if (messages.length) msg.push(...messages);
       if (prompt) msg.push({ role: "user", content: prompt });
 
-      const payload = { model: "gpt-oss:20b", messages: msg };
+      const payload = {
+        model: "gpt-oss:20b",
+        messages: msg,
+        features: {
+          web_search: true,
+          citations: true,
+          status_updates: true,
+          image_generation: false,
+          code_interpreter: true,
+          voice: false,
+        },
+      };
 
       const cacheKey = createCacheKey(payload);
       const cached = cache.get(cacheKey);
