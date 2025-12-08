@@ -22,7 +22,7 @@ export default new Elysia({ prefix: "/api" }).post(
       if (messages.length) msg.push(...messages);
       if (prompt) msg.push({ role: "user", content: prompt });
 
-      const payload = { model: "qwen2.5:14b", messages: msg };
+      const payload = { model: "gpt-oss:20b", messages: msg };
 
       const cacheKey = createCacheKey(payload);
       const cached = cache.get(cacheKey);
