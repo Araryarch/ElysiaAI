@@ -25,10 +25,6 @@ export default new Elysia({ prefix: "/api" }).post(
       const payload = {
         model: "gpt-oss:20b",
         messages: msg,
-        features: {
-          web_search: true,
-          citations: true,
-        },
       };
 
       const cacheKey = createCacheKey(payload);
