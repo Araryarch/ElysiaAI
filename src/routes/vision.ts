@@ -112,6 +112,7 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
       messages: normalized,
       features: {
         web_search: true,
+        image_generation: true,
       },
     };
 
