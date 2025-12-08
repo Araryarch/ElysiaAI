@@ -113,8 +113,8 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
       features: {
         web_search: true,
         citations: false,
-        status_updates: true,
-        image_generation: true,
+        status_updates: false,
+        image_generation: false,
         code_interpreter: false,
         voice: false,
       },
