@@ -21,6 +21,7 @@ export default new Elysia({ prefix: "/api" }).get("/models", async () => {
     }
 
     const res = await fetch(url, {
+      credentials: "include",
       headers: { Authorization: API_KEY },
     });
 

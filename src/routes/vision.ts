@@ -122,6 +122,7 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
     // --- fetch AI ---
     const res = await fetch(API_URL, {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         Authorization: API_KEY,

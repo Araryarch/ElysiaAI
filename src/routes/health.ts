@@ -15,6 +15,7 @@ async function checkExternalAPI() {
     const res = await Promise.race([
       fetch(EXTERNAL_HEALTH_URL, {
         method: "GET",
+        credentials: "include",
         headers: {
           Authorization: API_KEY,
         },
