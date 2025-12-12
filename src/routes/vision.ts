@@ -96,6 +96,27 @@ async function normalizeMessages(
   return result;
 }
 
+// Strip base64 data from messages for cleaner response
+function sanitizeMessages(messages: any[]): any[] {
+  return messages.map((msg) => {
+    if (Array.isArray(msg.content)) {
+      return {
+        ...msg,
+        content: msg.content.map((item: any) => {
+          if (item.type === "image_url" && item.image_url?.url?.startsWith("data:")) {
+            return {
+              type: "image_url",
+              image_url: { url: "[base64_image]" },
+            };
+          }
+          return item;
+        }),
+      };
+    }
+    return msg;
+  });
+}
+
 export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
   try {
     const API_KEY = process.env.API_KEY ?? "";
@@ -127,7 +148,11 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
       return {
         success: true,
         models: "senopati-7b",
-        data: { ...cached.data, cached: true },
+        data: {
+          reply: cached.data.reply,
+          messages: sanitizeMessages(cached.data.messages),
+          cached: true,
+        },
       };
 
     // --- fetch AI ---
@@ -152,17 +177,23 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
     const data = await res.json();
     const reply = data?.choices?.[0]?.message?.content || "";
 
-    const responseData = {
-      reply,
-      messages: [...normalized, { role: "assistant", content: reply }],
-    };
-
+    const fullMessages = [...normalized, { role: "assistant", content: reply }];
+    
+    // Keep full data in cache for potential reuse
     cache.set(cacheKey, {
       timestamp: Date.now(),
-      data: responseData,
+      data: { reply, messages: fullMessages },
     });
 
-    return { success: true, models: "senopati-7b", data: responseData };
+    // Return sanitized messages (without base64) to user
+    return {
+      success: true,
+      models: "senopati-7b",
+      data: {
+        reply,
+        messages: sanitizeMessages(fullMessages),
+      },
+    };
   } catch (err: any) {
     return {
       success: false,
