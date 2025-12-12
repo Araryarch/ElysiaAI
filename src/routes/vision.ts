@@ -4,7 +4,7 @@ const cache = new Map<string, { timestamp: number; data: any }>();
 const CACHE_TTL = 20_000; // 20 detik
 
 const API_URL = "https://chat.ragita.net/api/chat/completions";
-const API_KEY = process.env.API_KEY ?? "";
+
 
 function createCacheKey(payload: any) {
   return JSON.stringify(payload);
@@ -91,6 +91,7 @@ async function normalizeMessages(
 
 export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
   try {
+    const API_KEY = process.env.API_KEY ?? "";
     const form = await ctx.request.formData();
 
     const prompt = form.get("prompt")?.toString();
