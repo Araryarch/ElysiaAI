@@ -120,16 +120,41 @@ function sanitizeMessages(messages: any[]): any[] {
 export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
   try {
     const API_KEY = process.env.API_KEY ?? "";
-    const form = await ctx.request.formData();
+    const contentType = ctx.request.headers.get("content-type") || "";
 
-    const prompt = form.get("prompt")?.toString();
-    const systemPrompt = form.get("systemPrompt")?.toString();
-    const messages = form.get("messages")?.toString();
-    const file = form.get("image") as File | undefined;
-    const imageUrl = form.get("image_url")?.toString();
+    let prompt: string | undefined;
+    let systemPrompt: string | undefined;
+    let messages: any[] = [];
+    let file: File | undefined;
+    let imageUrl: string | undefined;
+
+    // Parse based on content-type
+    if (contentType.includes("application/json")) {
+      // JSON body
+      const body = await ctx.request.json();
+      prompt = body.prompt;
+      systemPrompt = body.systemPrompt;
+      messages = body.messages || [];
+      imageUrl = body.image; // accepts URL or base64 string
+    } else {
+      // multipart/form-data
+      const form = await ctx.request.formData();
+      prompt = form.get("prompt")?.toString();
+      systemPrompt = form.get("systemPrompt")?.toString();
+      const messagesStr = form.get("messages")?.toString();
+      messages = messagesStr ? JSON.parse(messagesStr) : [];
+      
+      // 'image' can be a File or a URL string
+      const imageField = form.get("image");
+      if (imageField instanceof File) {
+        file = imageField;
+      } else if (typeof imageField === "string") {
+        imageUrl = imageField;
+      }
+    }
 
     const normalized = await normalizeMessages(
-      messages ? JSON.parse(messages) : [],
+      messages,
       file,
       imageUrl,
       prompt,
