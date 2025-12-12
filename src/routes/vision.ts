@@ -11,9 +11,16 @@ function createCacheKey(payload: any) {
 }
 
 function bufferToBase64(buffer: ArrayBuffer, mimetype: string) {
-  return `data:${mimetype};base64,${btoa(
-    String.fromCharCode(...new Uint8Array(buffer))
-  )}`;
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 8192; // Process in chunks to avoid stack overflow
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  
+  return `data:${mimetype};base64,${btoa(binary)}`;
 }
 
 // fetch image from URL → convert to base64
@@ -138,7 +145,7 @@ export default new Elysia({ prefix: "/api" }).post("/vision", async (ctx) => {
       const details = await res.text();
       return {
         success: false,
-        error: { message: "AI request failed", details },
+        error: { message: "AI request failed", status: res.status, details },
       };
     }
 
